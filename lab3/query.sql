@@ -130,4 +130,82 @@ UNION ALL SELECT 'Baggage', count(*) FROM Baggage
 UNION ALL SELECT 'Baggage_check', count(*) FROM Baggage_check
 UNION ALL SELECT 'Security_check', count(*) FROM Security_check;
 
+--2
+INSERT INTO airline (airline_code, airline_name, airline_country, created_at, updated_at, airline_info) 
+VALUES ('KA', 'KazAir', 'Kazakhstan', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'Yo');
 
+--3
+UPDATE airline 
+SET airline_country = 'Turkey', updated_at = CURRENT_TIMESTAMP
+WHERE airline_name = 'KazAir';
+
+-- automate creation and update time
+DO $$
+DECLARE
+	t record;
+BEGIN
+	FOR t IN
+		SELECT table_name
+		FROM information_schema.columns
+		WHERE table_schema = 'public' AND column_name IN ('created_at', 'updated_at')
+		GROUP BY table_name
+		HAVING count(*) = 2
+	LOOP
+		EXECUTE format(
+				'ALTER TABLE %I
+					ALTER COLUMN created_at SET DEFAULT CURRENT_TIMESTAMP,
+					ALTER COLUMN updated_at SET DEFAULT CURRENT_TIMESTAMP',
+				t.table_name);
+	END LOOP;
+END $$;
+
+--ASSIGNS NEW UPDATE_AT WHEN UPDATED
+RETURNS trigger AS $$ 
+BEGIN
+	IF NEW.updated_at is NULL THEN
+			NEW.updated_at = CURRENT_TIMESTAMP;
+	END IF;
+	RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+--4
+INSERT INTO airline (airline_code, airline_name, airline_country, airline_info)
+VALUES 
+('AE', 'AirEasy', 'France', 'no'),
+('FH', 'FlyHigh', 'Brazil', 'no'),
+('FF', 'FlyFly', 'Poland', 'no');
+
+--5
+DELETE FROM flights
+WHERE EXTRACT(YEAR FROM actual_arrival_time) = 2024
+
+--6
+UPDATE booking
+SET ticket_price = ticket_price * 1.15
+
+--on delete cascade
+DO $$
+DECLARE
+    r record;
+BEGIN
+    FOR r IN
+        SELECT conrelid::regclass AS tbl,
+               conname,
+               pg_get_constraintdef(oid) AS def
+        FROM pg_constraint
+        WHERE contype = 'f'
+          AND connamespace = 'public'::regnamespace
+          AND confdeltype = 'a'          -- only those still on the default NO ACTION
+    LOOP
+        EXECUTE format(
+            'ALTER TABLE %s
+                DROP CONSTRAINT %I,
+                ADD CONSTRAINT %I %s ON DELETE CASCADE',
+            r.tbl, r.conname, r.conname, r.def);
+    END LOOP;
+END $$;
+
+--7
+DELETE FROM booking
+WHERE ticket_price < 10000
