@@ -98,16 +98,50 @@ ADD CONSTRAINT uq_num_date UNIQUE(flight_no, scheduled_departure);
 ALTER TABLE passengers
 ADD CONSTRAINT uq_passport_num UNIQUE(passport_number);
 
+-- age constraints
 ALTER TABLE passengers
-ADD CONSTRAINT ck_male_age CHECK (gender <> 'male' OR date_of_birth <= CURRENT_DATE - INTERVAL '19 years');
+ADD CONSTRAINT ck_male_age CHECK (gender <> 'male' OR 
+	date_of_birth <= CURRENT_DATE - INTERVAL '19 years');
 ALTER TABLE passengers
-ADD CONSTRAINT ck_male_age CHECK (gender <> 'female' OR date_of_birth <= CURRENT_DATE - INTERVAL '18 years');
-ALTER TABLE passengers
-ADD CONSTRAINT ck_male_age CHECK (country_of_citizenship <> 'Kazakhstan' OR 
+ADD CONSTRAINT ck_female_age CHECK (gender <> 'female' OR 
 	date_of_birth <= CURRENT_DATE - INTERVAL '18 years');
 ALTER TABLE passengers
-ADD CONSTRAINT ck_male_age CHECK (country_of_citizenship <> 'France' OR 
+ADD CONSTRAINT ck_kz_age CHECK (country_of_citizenship <> 'Kazakhstan' OR 
+	date_of_birth <= CURRENT_DATE - INTERVAL '18 years');
+ALTER TABLE passengers
+ADD CONSTRAINT ck_fr_age CHECK (country_of_citizenship <> 'France' OR 
 	date_of_birth <= CURRENT_DATE - INTERVAL '17 years');
-ADD CONSTRAINT ck_male_age CHECK (country_of_citizenship <> 'France' OR 
+ALTER TABLE passengers
+ADD CONSTRAINT ck_other_age CHECK (country_of_citizenship = 'France' OR country_of_citizenship = 'Kazakhstan' OR 
 	date_of_birth <= CURRENT_DATE - INTERVAL '17 years');
+
+-- add ticket_discounts
+ALTER TABLE booking
+ADD COLUMN ticket_discount numeric(7,2);
+
+UPDATE booking
+SET ticket_discount = price * 0.05
+WHERE created_at > '2022-11-10';
+
+UPDATE booking
+SET ticket_discount = price * 0.02
+WHERE created_at > '2023-10-20';
+
+-- booking default status = 'Confirmed'
+ALTER TABLE booking
+ALTER COLUMN status SET DEFAULT 'Confirmed';
+
+INSERT INTO booking(booking_id, passenger_id, booking_platform, created_at, update_at, price)
+VALUES
+(502, 10, 'booking.com', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 100);
+
+
+
+-- default value for date
+
+ALTER TABLE booking
+ALTER COLUMN created_at SET DEFAULT CURRENT_TIMESTAMP;
+
+ALTER TABLE booking
+ALTER COLUMN update_at SET DEFAULT CURRENT_TIMESTAMP;
 
