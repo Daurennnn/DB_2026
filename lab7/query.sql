@@ -29,3 +29,28 @@ insert into passengers
 values 
 	(1001, 'dauren', 'zhan', '2001-12-11', 'male', 'kazakhstan', 'kazakhstan', '01928384756'),
 	(10002, 'bebren', 'john', '2002-12-11', 'female', 'kazakhstan', 'kazakhstan', '01928384756');
+
+-- 
+select *
+from pg_indexes
+where tablename = 'passengers';
+
+drop index passengers_passno_idx_uq;
+alter table passengers drop constraint passengers_pkey cascade;
+--
+create unique index passenger_pkey
+on passengers(passenger_id);
+
+explain analyze
+select *
+from passengers
+where passenger_id = 100;
+--
+create index flights_fs_idx on flights(status);
+
+explain analyze
+select * 
+from flights
+where status = 'Departed';
+
+--
